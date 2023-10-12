@@ -13,6 +13,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     POETRY_VIRTUALENVS_IN_PROJECT=1 \
     PATH="/openscout-server/.venv/bin:$PATH"
 
+
 RUN apt-get update && apt-get install -y \
     git \
     libgl1 \
@@ -22,6 +23,7 @@ RUN apt-get update && apt-get install -y \
     python3.8-venv \
     python3-pip \
     wget \
+    tesseract-ocr\
  && wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add - \
  && echo "deb https://artifacts.elastic.co/packages/oss-7.x/apt stable main" | tee -a /etc/apt/sources.list.d/elastic-7.x.list \
  && apt-get update && apt-get install -y \
