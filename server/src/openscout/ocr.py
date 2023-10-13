@@ -42,22 +42,6 @@ def main():
         "--timing", action="store_true", help="Print timing information"
     )
 
-    # parser.add_argument("-p", "--port", type=int, default=9099, help="Set port number")
-
-    # parser.add_argument(
-    #     "-m",
-    #     "--model",
-    #     default="coco",
-    #     help=(
-    #         "(OBJECT DETECTION) Subdirectory under /openscout-server/model/"
-    #         " which contains Tensorflow model to load initially."
-    #     ),
-    # )
-
-    parser.add_argument(
-        "-r", "--threshold", type=float, default=0.85, help="Confidence threshold"
-    )
-
     parser.add_argument(
         "-s",
         "--store",
@@ -77,14 +61,6 @@ def main():
         "-src", "--source", default=SOURCE, help="Source for engine to register with."
     )
 
-    parser.add_argument(
-        "-x",
-        "--exclude",
-        help=(
-            "Comma separated list of classes (ids) to exclude when peforming detection."
-            " Consult model/<model_name>/label_map.pbtxt."
-        ),
-    )
 
     args, _ = parser.parse_known_args()
 
@@ -98,7 +74,7 @@ def main():
 
     logger.info("Starting filebeat...")
     subprocess.call(["service", "filebeat", "start"])
-    logger.info("Starting object detection cognitive engine..")
+    logger.info("Starting optical character recognization cognitive engine..")
     engine_runner.run(
         engine=ocr_engine_setup(),
         source_name=args.source,

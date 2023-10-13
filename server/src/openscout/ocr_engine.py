@@ -19,7 +19,6 @@
 #
 
 import logging
-import os
 import time
 import pytesseract
 
@@ -30,7 +29,6 @@ from gabriel_protocol import gabriel_pb2
 from gabriel_server import cognitive_engine
 from pathlib import Path
 from PIL import Image, ImageDraw
-from .protocol import openscout_pb2
 
 # setup the log
 logger = logging.getLogger(__name__)
@@ -49,18 +47,7 @@ class OCREngine(cognitive_engine.Engine):
     ENGINE_NAME = "openscout-ocr"
 
     def __init__(self, args):
-        self.threshold = args.threshold
         self.store_detections = args.store
-
-        if args.exclude:
-            self.exclusions = list(
-                map(int, args.exclude.split(","))
-            )  # split string to int list
-            logger.info(f"Excluding the following class ids: {self.exclusions}")
-        else:
-            self.exclusions = None
-
-        logger.info(f"Confidence Threshold: {self.threshold}")
 
         if self.store_detections:
             watermark_path = importlib_resources.files("openscout").joinpath(
@@ -87,20 +74,20 @@ class OCREngine(cognitive_engine.Engine):
             result.payload = "Ignoring TEXT payload.".encode(encoding="utf-8")
             result_wrapper.results.append(result)
             return result_wrapper
-
-        extras = cognitive_engine.unpack_extras(openscout_pb2.Extras, input_frame)
                 
         
         # configure time
         self.t0 = time.time()
         
         # process image
-        results = pytesseract.image_to_string(input_frame.payloads[0])
         np_data = np.fromstring(input_frame.payloads[0], dtype=np.uint8)
         image_np = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
-        image_np = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
+        img = Image.fromarray(image_np) #PIL image
+        results = pytesseract.image_to_string(img)
+        logger.info(f"Transcribed : {results}")
         
-        timestamp_millis = int(time.time() * 1000)
+        
         
         # configure result wrappper
         status = gabriel_pb2.ResultWrapper.Status.SUCCESS
@@ -108,33 +95,26 @@ class OCREngine(cognitive_engine.Engine):
         result_wrapper.result_producer_name.value = self.ENGINE_NAME
 
         if self.store_detections:
+            timestamp_millis = int(time.time() * 1000)
             filename = str(timestamp_millis) + ".jpg"
-            img = Image.fromarray(image_np)
             path = self.storage_path / "received" / filename
             img.save(path, format="JPEG")
 
-        if len(results.pred) > 0:
+        if len(results) > 0:
             result = gabriel_pb2.ResultWrapper.Result()
             result.payload_type = gabriel_pb2.PayloadType.TEXT
-            result.payload = results
+            result.payload = results.encode(encoding="utf-8")
             result_wrapper.results.append(result)
 
             if self.store_detections:
                 try:
-                    # results._run(
-                    #     save=True,
-                    #     labels=True,
-                    #     save_dir=Path("openscout-vol/")
-                    # )
-                    results.render()
-                    img = Image.fromarray(results.ims[0])
-                    draw = ImageDraw.Draw(img)
-                    draw.bitmap((0, 0), self.watermark, fill=None)
-                    path = self.storage_path / "detected" / filename
-                    img.save(path, format="JPEG")
-                    logger.info(f"Stored image: {path}")
-                except IndexError:
-                    logger.exception("IndexError while getting bounding boxes")
+                    filename = str(timestamp_millis) + ".txt"
+                    path = self.storage_path / "transcribed" / filename
+                    with open(path, 'w') as file:
+                        file.write(results)
+                    logger.info(f"Stored transcript: {path}")
+                except Exception as e:  # Catch other potential exceptions
+                    print(f"An unexpected error occurred: {e}")
                     return result_wrapper
 
         return result_wrapper

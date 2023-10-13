@@ -54,6 +54,7 @@ pyupgrade = "^3.3.1"
 openscout = "openscout.__main__:main"
 openscout-face-engine = "openscout.face:main"
 openscout-object-engine = "openscout.obj:main"
+openscout-ocr-engine = "openscout.ocr:main"
 
 [tool.black]
 target-version = ["py37"]
