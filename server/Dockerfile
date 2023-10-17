@@ -13,8 +13,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
     POETRY_VIRTUALENVS_IN_PROJECT=1 \
     PATH="/openscout-server/.venv/bin:$PATH"
 
-RUN echo "deb http://archive.ubuntu.com/ubuntu bionic universe" | tee -a /etc/apt/sources.list
-
 RUN apt-get update && apt-get install -y \
     git \
     libgl1 \
