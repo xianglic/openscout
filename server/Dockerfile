@@ -13,6 +13,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     POETRY_VIRTUALENVS_IN_PROJECT=1 \
     PATH="/openscout-server/.venv/bin:$PATH"
 
+RUN echo "deb http://archive.ubuntu.com/ubuntu bionic universe" | tee -a /etc/apt/sources.list
 
 RUN apt-get update && apt-get install -y \
     git \
@@ -34,6 +35,8 @@ RUN --mount=type=cache,target=/root/.cache \
     python3.8 -m pip install --upgrade pip keyrings.alt \
  && python3.8 -m pip install poetry==1.6.1
 
+
+
 # You can speed up build slightly by reducing build context with
 #     git archive --format=tgz HEAD | docker build -t openscout -
 WORKDIR /openscout-server
@@ -51,6 +54,8 @@ RUN --mount=type=cache,target=/root/.cache \
     poetry install --only main \
  && cp elk/filebeat.yml /etc/filebeat/filebeat.yml \
  && chmod go-w /etc/filebeat/filebeat.yml
+
+RUN python3.8 -m pip install pytesseract
 
 EXPOSE 5555 9099
 ENTRYPOINT ["./entrypoint.sh"]

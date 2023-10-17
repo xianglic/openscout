@@ -84,7 +84,8 @@ class OCREngine(cognitive_engine.Engine):
         image_np = cv2.imdecode(np_data, cv2.IMREAD_COLOR)
         image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(image_np) #PIL image
-        results = pytesseract.image_to_string(img)
+        lang = "spa+eng+fra+chi_sim+chi_tra+kor"
+        results = pytesseract.image_to_string(img, lang=lang)
         logger.info(f"Transcribed : {results}")
         
         
