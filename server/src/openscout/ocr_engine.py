@@ -21,6 +21,8 @@
 import logging
 import time
 import pytesseract
+import requests
+import json
 
 import cv2
 import importlib_resources
@@ -48,6 +50,7 @@ class OCREngine(cognitive_engine.Engine):
 
     def __init__(self, args):
         self.store_detections = args.store
+        self.endpoint = "http://openllm-service:5000"
 
         if self.store_detections:
             watermark_path = importlib_resources.files("openscout").joinpath(
@@ -62,6 +65,18 @@ class OCREngine(cognitive_engine.Engine):
                 logger.info("Images directory already exists.")
             logger.info(f"Storing detection images at {self.storage_path}")
 
+    
+    # curl -X POST http://localhost:5000/generate -H "Content-Type: application/json" -d '{"text": "I am in front of this sign, what should I do? SALIDA DE EMERGENCIA."}'
+    
+    def infer(self, processed_res):
+        headers = {"content-type": "application/json"}
+        # send http request with image and receive response
+        response = requests.post(
+            "{}/{}".format(self.endpoint, "generate"), json=processed_res, headers=headers
+        )
+        logger.info(f"debug: {type(response)}, {dir(response)}, {response}")
+        return response.text
+    
     def handle(self, input_frame):
         
         # if the payload is TEXT, say from a CNC client, we ignore
@@ -85,11 +100,20 @@ class OCREngine(cognitive_engine.Engine):
         image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(image_np) #PIL image
         lang = "spa+eng+fra+chi_sim+chi_tra+kor"
-        results = pytesseract.image_to_string(img, lang=lang)
-        logger.info(f"Transcribed : {results}")
+        processed_result = pytesseract.image_to_string(img, lang=lang)
+        logger.info(f"Transcribed : {processed_result}")
+        processed_result = f"I am in front of this sign, what should I do? Sign:{processed_result}"
         
+        # infer
+        # infer_pack =  (f'{{"text": "{processed_result}"}}').encode(encoding="utf-8")
+        infer_pack = {"text": processed_result}
+        logger.info(f"infer_pack : {infer_pack}")
+        inferred_result = self.infer(infer_pack)
+        logger.info(f"inferred : {inferred_result}")
         
-        
+        # combine processed and inferred result
+        results = f"Transcribed : {processed_result} \n" + f"inferred : {inferred_result}\n"
+            
         # configure result wrappper
         status = gabriel_pb2.ResultWrapper.Status.SUCCESS
         result_wrapper = cognitive_engine.create_result_wrapper(status)

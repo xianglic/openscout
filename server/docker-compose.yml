@@ -107,12 +107,33 @@ services:
     image: cmusatyalab/openface
     container_name: openface-service
     ports:
-      - "5000:5000"
+      - "5002:5000"
     restart: unless-stopped
     privileged: true
     entrypoint: ["python", "/root/openface-rest.py", "/openscout-server/training/"]
     volumes:
       - training-vol:/openscout-server/training/
+    networks:
+      - openscout-net
+
+# OpenLLM is the default for LLM
+  openllm-service:
+    image: local/server_llama.cpp:light-cuda 
+    container_name: openllm-service
+    ports:
+      - "5001:5000"
+    restart: unless-stopped
+    privileged: true
+    entrypoint: [ "python3", "/app/server.py" ]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - /home/ubuntu/blake/llama.cpp/Llama-2-13B-Ensemble-v6-GGUF:/models
     networks:
       - openscout-net
 
