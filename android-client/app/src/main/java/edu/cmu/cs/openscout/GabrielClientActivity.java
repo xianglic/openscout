@@ -133,6 +133,10 @@ public class GabrielClientActivity extends AppCompatActivity {
 
     private int detections = 0;
 
+
+    // Global variable to store the latest frame.
+    private volatile Boolean sendImageToServer = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.v(LOG_TAG, "++onCreate");
@@ -193,10 +197,60 @@ public class GabrielClientActivity extends AppCompatActivity {
                 @Override
                 public void onClick(View v) {
                     Bitmap b = Screenshot.takescreenshotOfRootView(preview);
-                    storeScreenshot(b, getOutputMediaFile(MEDIA_TYPE_IMAGE).getPath());
-                    screenshotButton.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+//                    storeScreenshot(b, getOutputMediaFile(MEDIA_TYPE_IMAGE).getPath());
+//                    screenshotButton.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+                    Log.d("MyApp-prev: ", sendImageToServer.toString());
+                    sendImageToServer = true;
+                    Log.d("MyApp: ", sendImageToServer.toString());
+
+                            // Convert the bitmap screenshot to ByteString in JPEG format.
+//                    ByteString jpegByteString = bitmapToByteString(b);
+//                    Log.d("MyApp", "Size of jpegByteString: " + jpegByteString.size() + " bytes");
+//                    Log.d("MyApp", "First 100 bytes of jpegByteString in Hex: " + bytesToHex(jpegByteString.toByteArray(), 100));
+//                    if (mCurrentFrame != null) {
+//                        ByteString jpegByteString = yuvToJPEGConverter.convert(mCurrentFrame);
+//                        Log.d("MyApp", "Size of jpegByteString: " + jpegByteString.size() + " bytes");
+//                        openscoutcomm.sendSupplier(() -> {
+//
+//                            Extras extras;
+//                            Extras.Builder extrasBuilder = Extras.newBuilder();
+//                            if (Const.IS_TRAINING) {
+//                                extrasBuilder.setIsTraining(true);
+//                                extrasBuilder.setName(Const.TRAINING_NAME);
+//                            }
+//                            Protos.Location.Builder lb = Protos.Location.newBuilder();
+//                            double [] coords = getGPS();
+//                            lb.setLatitude(coords[0]);
+//                            lb.setLongitude(coords[1]);
+//                            extrasBuilder.setLocation(lb);
+//                            extrasBuilder.setClientId(Const.UUID);
+//                            extras = extrasBuilder.build();
+////                        Log.v(LOG_TAG, "send a frame");
+//                            return InputFrame.newBuilder()
+//                                    .setPayloadType(PayloadType.IMAGE)
+//                                    .addPayloads(jpegByteString)
+//                                    .setExtras(pack(extras))
+//                                    .build();
+//                        }, Const.SOURCE_NAME, false);
+
+//                        mCurrentFrame.close();
+//                        mCurrentFrame = null;
+//                    }
+//...
+
+
 
                 }
+
+                // This function converts a Bitmap to ByteString in JPEG format.
+                private ByteString bitmapToByteString(Bitmap bitmap) {
+                    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream);
+                    byte[] byteArray = byteArrayOutputStream.toByteArray();
+                    return ByteString.copyFrom(byteArray);
+                }
+
+
 
             });
 
@@ -548,29 +602,37 @@ public class GabrielClientActivity extends AppCompatActivity {
     final private ImageAnalysis.Analyzer analyzer = new ImageAnalysis.Analyzer() {
         @Override
         public void analyze(@NonNull ImageProxy image) {
-            openscoutcomm.sendSupplier(() -> {
-                ByteString jpegByteString = yuvToJPEGConverter.convert(image);
+//            Log.d("MyApp2: ", sendImageToServer.toString());
+//            sendImageToServer = true;
+            if (sendImageToServer) {
+//                Log.d("MyApp2: ", sendImageToServer.toString());
+                sendImageToServer = false;
+                openscoutcomm.sendSupplier(() -> {
+                    ByteString jpegByteString = yuvToJPEGConverter.convert(image);
 
-                Extras extras;
-                Extras.Builder extrasBuilder = Extras.newBuilder();
-                if (Const.IS_TRAINING) {
-                    extrasBuilder.setIsTraining(true);
-                    extrasBuilder.setName(Const.TRAINING_NAME);
-                }
-                Protos.Location.Builder lb = Protos.Location.newBuilder();
-                double [] coords = getGPS();
-                lb.setLatitude(coords[0]);
-                lb.setLongitude(coords[1]);
-                extrasBuilder.setLocation(lb);
-                extrasBuilder.setClientId(Const.UUID);
-                extras = extrasBuilder.build();
+                    Extras extras;
+                    Extras.Builder extrasBuilder = Extras.newBuilder();
+                    if (Const.IS_TRAINING) {
+                        extrasBuilder.setIsTraining(true);
+                        extrasBuilder.setName(Const.TRAINING_NAME);
+                    }
+                    Protos.Location.Builder lb = Protos.Location.newBuilder();
+                    double[] coords = getGPS();
+                    lb.setLatitude(coords[0]);
+                    lb.setLongitude(coords[1]);
+                    extrasBuilder.setLocation(lb);
+                    extrasBuilder.setClientId(Const.UUID);
+                    extras = extrasBuilder.build();
 
-                return InputFrame.newBuilder()
-                        .setPayloadType(PayloadType.IMAGE)
-                        .addPayloads(jpegByteString)
-                        .setExtras(pack(extras))
-                        .build();
-            }, Const.SOURCE_NAME, false);
+                    return InputFrame.newBuilder()
+                            .setPayloadType(PayloadType.IMAGE)
+                            .addPayloads(jpegByteString)
+                            .setExtras(pack(extras))
+                            .build();
+                }, Const.SOURCE_NAME, false);
+
+
+            }
 
             image.close();
         }
