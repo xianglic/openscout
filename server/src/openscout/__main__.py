@@ -23,6 +23,8 @@ import logging
 
 from gabriel_server.network_engine import server_runner
 
+FIVE_SECONDS = 5
+
 DEFAULT_PORT = 9099
 DEFAULT_NUM_TOKENS = 2
 INPUT_QUEUE_MAXSIZE = 60
@@ -52,6 +54,14 @@ def main():
         default=INPUT_QUEUE_MAXSIZE,
         help="Max input queue size",
     )
+    
+    
+    parser.add_argument(
+        "--timeout",
+        default=FIVE_SECONDS,
+        type = int,
+        help="timeout period from server to client",
+    )
 
     args, _ = parser.parse_known_args()
 
@@ -60,6 +70,7 @@ def main():
         zmq_address="tcp://*:5555",
         num_tokens=args.tokens,
         input_queue_maxsize=args.queue,
+        timeout = args.timeout
     )
 
 

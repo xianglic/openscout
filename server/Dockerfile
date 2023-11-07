@@ -54,6 +54,7 @@ RUN --mount=type=cache,target=/root/.cache \
  && chmod go-w /etc/filebeat/filebeat.yml
 
 RUN python3.8 -m pip install pytesseract
+RUN python3.8 -m pip install azure-cognitiveservices-vision-computervision
 
 EXPOSE 5555 9099
 ENTRYPOINT ["./entrypoint.sh"]

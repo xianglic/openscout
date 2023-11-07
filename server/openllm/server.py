@@ -21,7 +21,7 @@ def generate():
     input_text = data.get('text')
 
     if input_text:
-        command = f"./main -m ./llama-2-13b-ensemble-v6.Q5_K_S.gguf -p \"{input_text}\" -n 512 --n-gpu-layers 50"
+        command = f"./main -m ./llama-2-13b-ensemble-v6.Q5_K_S.gguf -p \"{input_text}\" -n 512 --n-gpu-layers 50 --temp 0"
         # command = f"./main -m ./Llama-2-13B-Ensemble-v6-GGUF/llama-2-13b-ensemble-v6.Q5_K_S.gguf -p \"{input_text}\" -n 512 --n-gpu-layers 50"
 
         try:

@@ -25,9 +25,11 @@ import subprocess
 from gabriel_server.network_engine import engine_runner
 
 from .ocr_engine import OCREngine
+from .msocr_engine import MSOCREngine
 from .timing_engine import TimingObjectEngine
 
 SOURCE = "openscout"
+TEN_SECONDS = 10000
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -56,19 +58,41 @@ def main():
         default="tcp://gabriel-server:5555",
         help="Gabriel server endpoint.",
     )
-
+    
     parser.add_argument(
-        "-src", "--source", default=SOURCE, help="Source for engine to register with."
+        "--timeout",
+        default=TEN_SECONDS,
+        type = int,
+        help="Engine runner timeout period.",
     )
 
+    parser.add_argument(
+        "-src", 
+        "--source", 
+        default=SOURCE, 
+        help="Source for engine to register with."
+    )
+    # arguments specific to MS Face Container
+    parser.add_argument(
+        "--msocr",
+        action="store_true",
+        default=False,
+        help="Use MS OCR Cognitive Service for OCR recognition",
+    )
 
     args, _ = parser.parse_known_args()
 
     def ocr_engine_setup():
-        if args.timing:
-            engine = TimingObjectEngine(args)
+        if args.msocr:
+            if args.timing:
+                engine = TimingObjectEngine(args)
+            else:
+                engine = MSOCREngine(args)
         else:
-            engine = OCREngine(args)
+            if args.timing:
+                engine = TimingObjectEngine(args)
+            else:
+                engine = OCREngine(args)
 
         return engine
 
@@ -80,6 +104,7 @@ def main():
         source_name=args.source,
         server_address=args.gabriel,
         all_responses_required=True,
+        timeout = args.timeout
     )
 
 
