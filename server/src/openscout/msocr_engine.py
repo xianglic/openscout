@@ -153,7 +153,7 @@ class MSOCREngine(cognitive_engine.Engine):
         
         # infer
         # processed_result = f"I am in front of this sign, what should I do? Sign:{processed_result}"
-        processed_result = f"Write one sentence in English about the key idea of below text :{processed_result} Key idea: "
+        processed_result = f"Write one sentence in English about the key idea of below text :{processed_result} Key idea in English: "
         infer_pack = {"text": processed_result}
         logger.info(f"infer_pack : {infer_pack}")
         inferred_result = self.infer(infer_pack)
