@@ -44,7 +44,7 @@ public class Const {
 
     public static boolean USING_FRONT_CAMERA = false;
     public static boolean FRONT_ROTATION = false;
-    public static boolean SHOW_RECORDER = true;
+    public static boolean SHOW_RECORDER = false;
     public static boolean SHOW_DETECTIONS = true;
     public static boolean SHOW_TRAINING_ICON = true;
     public static boolean IS_TRAINING = false;

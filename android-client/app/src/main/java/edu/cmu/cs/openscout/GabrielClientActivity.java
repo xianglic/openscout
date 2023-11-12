@@ -95,6 +95,8 @@ import edu.cmu.cs.gabriel.protocol.Protos.PayloadType;
 import edu.cmu.cs.openscout.Protos.Extras;
 import edu.cmu.cs.gabriel.util.Screenshot;
 
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public class GabrielClientActivity extends AppCompatActivity {
 
@@ -105,6 +107,9 @@ public class GabrielClientActivity extends AppCompatActivity {
     private static int BITRATE = 1 * 1024 * 1024;
     private static final int MEDIA_TYPE_IMAGE = 1;
     private static final int MEDIA_TYPE_VIDEO = 2;
+
+//    private static final Pattern PATTERN =
+//            Pattern.compile("(?:\\n\\n\\n|Key idea in English)(.*?)}", Pattern.DOTALL);
 
     // major components for streaming sensor data and receiving information
     String serverIP = null;
@@ -136,6 +141,18 @@ public class GabrielClientActivity extends AppCompatActivity {
 
     // Global variable to store the latest frame.
     private volatile Boolean sendImageToServer = false;
+
+//    public static String extractText(String results) {
+//        // Create a matcher to find matches
+//        Matcher matcher = PATTERN.matcher(results);
+//
+//        // Extract and return the text
+//        if (matcher.find()) {
+//            return matcher.group(1).trim(); // Trim to remove leading/trailing whitespace
+//        } else {
+//            return "No match found";
+//        }
+//    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -172,26 +189,26 @@ public class GabrielClientActivity extends AppCompatActivity {
         });
 
         if (Const.SHOW_RECORDER) {
-            final ImageView recButton = findViewById(R.id.imgRecord);
-            recButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (capturingScreen) {
-                        ((ImageView) findViewById(R.id.imgRecord)).setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_videocam_24px));
-                        stopRecording();
-                        MediaActionSound m = new MediaActionSound();
-                        m.play(MediaActionSound.STOP_VIDEO_RECORDING);
-                    } else {
-                        recordingInitiated = true;
-                        MediaActionSound m = new MediaActionSound();
-                        m.play(MediaActionSound.START_VIDEO_RECORDING);
-                        ((ImageView) findViewById(R.id.imgRecord)).setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_videocam_off_24px));
-                        initRecorder();
-                        shareScreen();
-                    }
-                    recButton.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
-                }
-            });
+//            final ImageView recButton = findViewById(R.id.imgRecord);
+//            recButton.setOnClickListener(new View.OnClickListener() {
+//                @Override
+//                public void onClick(View v) {
+//                    if (capturingScreen) {
+//                        ((ImageView) findViewById(R.id.imgRecord)).setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_videocam_24px));
+//                        stopRecording();
+//                        MediaActionSound m = new MediaActionSound();
+//                        m.play(MediaActionSound.STOP_VIDEO_RECORDING);
+//                    } else {
+//                        recordingInitiated = true;
+//                        MediaActionSound m = new MediaActionSound();
+//                        m.play(MediaActionSound.START_VIDEO_RECORDING);
+//                        ((ImageView) findViewById(R.id.imgRecord)).setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_videocam_off_24px));
+//                        initRecorder();
+//                        shareScreen();
+//                    }
+//                    recButton.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+//                }
+//            });
             final ImageView screenshotButton = (ImageView) findViewById(R.id.imgScreenshot);
             screenshotButton.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -202,6 +219,8 @@ public class GabrielClientActivity extends AppCompatActivity {
                     Log.d("MyApp-prev: ", sendImageToServer.toString());
                     sendImageToServer = true;
                     Log.d("MyApp: ", sendImageToServer.toString());
+                    Context context = getApplicationContext();
+                    Toast.makeText(context, context.getString(R.string.training_succeeded), Toast.LENGTH_SHORT).show();
 
                             // Convert the bitmap screenshot to ByteString in JPEG format.
 //                    ByteString jpegByteString = bitmapToByteString(b);
@@ -285,7 +304,7 @@ public class GabrielClientActivity extends AppCompatActivity {
                         return null;
                     }
                 };
-                input.setFilters(new InputFilter[] { filter });
+//                input.setFilters(new InputFilter[] { filter });
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.MATCH_PARENT);
@@ -296,10 +315,43 @@ public class GabrielClientActivity extends AppCompatActivity {
                     public void onClick(DialogInterface dialog, int id) {
 
                         Const.IS_TRAINING = true;
-                        Log.i(LOG_TAG, input.getText().toString());
-                        Const.TRAINING_NAME = input.getText().toString();
+                        final String[] text = {input.getText().toString()};
+                        Log.i(LOG_TAG, text[0]);
+                        Const.TRAINING_NAME = text[0];
                         Toast.makeText(context, context.getString(R.string.training_in_progress, Const.TRAINING_NAME),
                                 Toast.LENGTH_SHORT).show();
+
+
+
+                        // Send Prompt to server
+                        openscoutcomm.sendSupplier(() -> {
+//                            String text = input.getText().toString();
+                            if (text[0].isEmpty()) {
+                                text[0] = "I am in front of this sign, what should I do? Sign: ";
+                            }
+                            ByteString textByteString = ByteString.copyFromUtf8(text[0]);
+
+                            Extras extras;
+                            Extras.Builder extrasBuilder = Extras.newBuilder();
+                            if (Const.IS_TRAINING) {
+                                extrasBuilder.setIsTraining(true);
+                                extrasBuilder.setName(Const.TRAINING_NAME);
+                            }
+                            Protos.Location.Builder lb = Protos.Location.newBuilder();
+                            double[] coords = getGPS();
+                            lb.setLatitude(coords[0]);
+                            lb.setLongitude(coords[1]);
+                            extrasBuilder.setLocation(lb);
+                            extrasBuilder.setClientId(Const.UUID);
+                            extras = extrasBuilder.build();
+
+                            return InputFrame.newBuilder()
+                                    .setPayloadType(PayloadType.TEXT)
+                                    .addPayloads(textByteString)
+                                    .setExtras(pack(extras))
+                                    .build();
+                        }, Const.SOURCE_NAME, false);
+
                         timer = new Handler();
                         timer.postDelayed(training_timer, Const.TRAIN_TIME);
                     }
@@ -646,6 +698,10 @@ public class GabrielClientActivity extends AppCompatActivity {
                 ResultWrapper.Result result = resultWrapper.getResults(0);
                 ByteString dataString = result.getPayload();
                 String results = dataString.toStringUtf8();
+                results = results.replace("\\n", "\n");
+//                results = extractText(results);
+
+                Log.d(LOG_TAG, results);
 
                 resultsView = (TextView) findViewById(R.id.resultsText);
                 String prev = resultsView.getText().toString();
@@ -711,8 +767,8 @@ public class GabrielClientActivity extends AppCompatActivity {
         @Override
         public void run() {
             Const.IS_TRAINING = false;
-            Context c = getApplicationContext();
-            Toast.makeText(c, c.getString(R.string.training_succeeded), Toast.LENGTH_SHORT).show();
+//            Context c = getApplicationContext();
+//            Toast.makeText(c, c.getString(R.string.training_succeeded), Toast.LENGTH_SHORT).show();
         }
     };
 
