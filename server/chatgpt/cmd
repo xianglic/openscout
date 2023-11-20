@@ -9,7 +9,7 @@ KEY=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-
 MODEL=gpt-3.5-turbo
 
 # run
-docker run -p 5000:5000 -e "Key=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" -e "Model=gpt-3.5-turbo" local/chatgpt:chat
+docker run -p 5000:5000 -e "Key=" -e "Model=gpt-3.5-turbo" local/chatgpt:chat
 
 # test
-docker run -p 5000:5000 -e "Key=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" -e "Model=gpt-3.5-turbo" -it --entrypoint /bin/bash local/chatgpt:chat
+docker run -p 5000:5000 -e "Key=" -e "Model=gpt-3.5-turbo" -it --entrypoint /bin/bash local/chatgpt:chat
