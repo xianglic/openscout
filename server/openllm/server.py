@@ -19,6 +19,7 @@ def clean_text(txt):
 def generate():
     data = request.json
     input_text = data.get('text')
+    input_text = input_text.replace('"', '')
 
     if input_text:
         command = f"./main -m ./llama-2-13b-ensemble-v6.Q5_K_S.gguf -p \"{input_text}\" -n 512 --n-gpu-layers 50 --temp 0"

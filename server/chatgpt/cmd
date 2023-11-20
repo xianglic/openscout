@@ -1,0 +1,15 @@
+curl -X POST http://127.0.0.1:5000/generate -H "Content-Type: application/json" -d '{"text": "Hello, ChatGPT!"}'
+
+
+docker build -t local/chatgpt:chat .
+
+
+#chatgpt-service
+KEY=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-
+MODEL=gpt-3.5-turbo
+
+# run
+docker run -p 5000:5000 -e "Key=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" -e "Model=gpt-3.5-turbo" local/chatgpt:chat
+
+# test
+docker run -p 5000:5000 -e "Key=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" -e "Model=gpt-3.5-turbo" -it --entrypoint /bin/bash local/chatgpt:chat

@@ -57,15 +57,26 @@ detection_log.addHandler(fh)
 
 # class
 class MSOCREngine(cognitive_engine.Engine):
+    
     ENGINE_NAME = "openscout-msocr"
 
     def __init__(self, args):
-        # llm
-        self.endpoint_llm = "http://openllm-service:5000"
+        
+        # get language model
+        self.lang_model = args.lang_model
+        if (self.lang_model == "llm"):
+            # llm
+            self.endpoint_lang_model = "http://openllm-service:5000"
+        else:
+            #chatgpt
+            self.endpoint_lang_model = "http://chatgpt-service:5000"
+            
+        # set the prompt
+        self.prompt = ""
         
         # ocr
-        subscription_key = '0eaf0d01a5ee493b94a5e07f75c22cdf'#os.environ["VISION_KEY"]
-        self.endpoint_ocr = "http://ms-ocr-service:5000"#"https://15821-read.cognitiveservices.azure.com/"#os.environ["VISION_ENDPOINT"]
+        subscription_key = args.apikey
+        self.endpoint_ocr = "http://ms-ocr-service:5000"
         self.computervision_client = ComputerVisionClient(self.endpoint_ocr, CognitiveServicesCredentials(subscription_key))
         
         # store
@@ -82,12 +93,22 @@ class MSOCREngine(cognitive_engine.Engine):
             except FileExistsError:
                 logger.info("Images directory already exists.")
             logger.info(f"Storing detection images at {self.storage_path}")
+            
+    def llm_prompt_gen(self, processed_result):
+        if (len(self.prompt) == 0):
+            processed_result = f"Write one sentence in English about the key idea of below text :{processed_result} \nKey idea in English: "
+        else:
+            processed_result = f"{self.prompt} :{processed_result} \n\n\n"
+            # zero out the prompt back to default
+            self.prompt = ""
+            
+        return processed_result
 
     def infer(self, processed_res):
         headers = {"content-type": "application/json"}
         # send http request with image and receive response
         response = requests.post(
-            "{}/{}".format(self.endpoint_llm, "generate"), json=processed_res, headers=headers
+            "{}/{}".format(self.endpoint_lang_model, "generate"), json=processed_res, headers=headers
         )
         logger.info(f"debug: {type(response)}, {dir(response)}, {response}")
         return response.text
@@ -127,14 +148,23 @@ class MSOCREngine(cognitive_engine.Engine):
         
     def handle(self, input_frame):
         
-        # if the payload is TEXT, say from a CNC client, we ignore
+        # if the payload is TEXT, say from a android prompt client, we use its prompt
         if input_frame.payload_type == gabriel_pb2.PayloadType.TEXT:
+            
+            # update the global prompt
+            logger.info("Received a customized prompt request \n")
+            curr_prompt = input_frame.payloads[0].decode("utf-8")
+            logger.info(f"The customized prompt: {curr_prompt}\n")
+            self.prompt = curr_prompt
+            
+            
+            
             status = gabriel_pb2.ResultWrapper.Status.SUCCESS
             result_wrapper = cognitive_engine.create_result_wrapper(status)
             result_wrapper.result_producer_name.value = self.ENGINE_NAME
             result = gabriel_pb2.ResultWrapper.Result()
             result.payload_type = gabriel_pb2.PayloadType.TEXT
-            result.payload = "Ignoring TEXT payload.".encode(encoding="utf-8")
+            result.payload = "Setting the prompt success.".encode(encoding="utf-8")
             result_wrapper.results.append(result)
             return result_wrapper
         
@@ -151,17 +181,38 @@ class MSOCREngine(cognitive_engine.Engine):
         byte_stream.seek(0)  # Rewind the stream to the beginning
         processed_result = self.msocr_process(byte_stream)
         
+        t1 = time.time()
+
+        # Calculate and print the time taken
+        time_taken = t1 - self.t0
+        
+        print(f"Time taken for OCR: {time_taken} seconds")
+        
+        self.t0 = time.time()
+        
         # infer
         # processed_result = f"I am in front of this sign, what should I do? Sign:{processed_result}"
-        processed_result = f"Write one sentence in English about the key idea of below text :{processed_result} Key idea in English: "
+        # processed_result = f"Write one sentence in English about the key idea of below text :{processed_result} Key idea in English: "
+        processed_result = self.llm_prompt_gen(processed_result)
+        logger.info(f"The llm_prompt + ocr result: {processed_result}\n")
+        
         infer_pack = {"text": processed_result}
         logger.info(f"infer_pack : {infer_pack}")
         inferred_result = self.infer(infer_pack)
         logger.info(f"inferred : {inferred_result}")
         
         # combine processed and inferred result
-        results = f"Transcribed : {processed_result} \n" + f"inferred : {inferred_result}\n"
-            
+        results = f"inferred : {inferred_result}\n" #f"Transcribed : {processed_result} \n" + f"inferred : {inferred_result}\n"
+        
+        t1 = time.time()
+
+        # Calculate and print the time taken
+        time_taken = t1 - self.t0
+        
+        print(f"Time taken for LLM: {time_taken} seconds")
+        
+        self.t0 = time.time()
+        
         # configure result wrappper
         status = gabriel_pb2.ResultWrapper.Status.SUCCESS
         result_wrapper = cognitive_engine.create_result_wrapper(status)
@@ -189,5 +240,13 @@ class MSOCREngine(cognitive_engine.Engine):
                 except Exception as e:  # Catch other potential exceptions
                     print(f"An unexpected error occurred: {e}")
                     return result_wrapper
+            
+        t1 = time.time()
+
+        # Calculate and print the time taken
+        time_taken = t1 - self.t0
+        
+        print(f"Time taken for sending: {time_taken} seconds")
+            
 
         return result_wrapper

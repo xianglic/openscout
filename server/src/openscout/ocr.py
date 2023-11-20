@@ -30,6 +30,7 @@ from .timing_engine import TimingObjectEngine
 
 SOURCE = "openscout"
 TEN_SECONDS = 10000
+LANG_MODEL = "llm"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -78,6 +79,17 @@ def main():
         action="store_true",
         default=False,
         help="Use MS OCR Cognitive Service for OCR recognition",
+    )
+    
+    parser.add_argument(
+        "--apikey",
+        help="(MS ocr Service) API key for cognitive service. Required for metering.",
+    )
+    
+    parser.add_argument(
+        "--lang_model",
+        default=LANG_MODEL,
+        help="language model",
     )
 
     args, _ = parser.parse_known_args()

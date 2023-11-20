@@ -86,7 +86,7 @@ services:
     privileged: true
     # entrypoint: ["openscout-ocr-engine","--timeout", "${OCR_TIMEOUT}","${STORE}"]
     #to use MS Face Cognitive Service, make this the entrypoint instead and use the ms-face-server container...
-    entrypoint: ["openscout-ocr-engine", "--msocr", "--endpoint", "http://ms-ocr-service:5000","--apikey", "${API_KEY}", "--timeout", "${OCR_TIMEOUT}", "${STORE}"]
+    entrypoint: ["openscout-ocr-engine", "--msocr","--apikey", "${API_KEY}", "--lang_model", "chatgpt", "--timeout","${OCR_TIMEOUT}", "${STORE}"]
     deploy:
       resources:
         reservations:
@@ -105,18 +105,18 @@ services:
       - WEBSERVER=${WEBSERVER_URL}:${HTTP_PORT}
 
 # OpenFace is the default for face recognition
-  openface-service:
-    image: cmusatyalab/openface
-    container_name: openface-service
-    ports:
-      - "5002:5000"
-    restart: unless-stopped
-    privileged: true
-    entrypoint: ["python", "/root/openface-rest.py", "/openscout-server/training/"]
-    volumes:
-      - training-vol:/openscout-server/training/
-    networks:
-      - openscout-net
+  # openface-service:
+  #   image: cmusatyalab/openface
+  #   container_name: openface-service
+  #   ports:
+  #     - "5002:5000"
+  #   restart: unless-stopped
+  #   privileged: true
+  #   entrypoint: ["python", "/root/openface-rest.py", "/openscout-server/training/"]
+  #   volumes:
+  #     - training-vol:/openscout-server/training/
+  #   networks:
+  #     - openscout-net
 
 # OpenLLM is the default for LLM
   openllm-service:
@@ -138,6 +138,28 @@ services:
       - /home/ubuntu/blake/llama.cpp/Llama-2-13B-Ensemble-v6-GGUF:/models
     networks:
       - openscout-net
+
+# OpenLLM is the default for LLM
+  chatgpt-service:
+    image: local/chatgpt:chat 
+    container_name: chatgpt-service
+    ports:
+      - "5002:5000"
+    restart: unless-stopped
+    privileged: true
+    entrypoint: [ "python3", "/app/server.py" ]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - openscout-net
+    environment:
+      - Key=${CHAT_API_KEY}
+      - Model=${CHAT_MODEL}
 
 # or the MS OCR Cognitive Server can be used (Azure Account Required)
   ms-ocr-service:

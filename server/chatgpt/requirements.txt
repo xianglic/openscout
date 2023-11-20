@@ -1,0 +1,4 @@
+Flask==2.0.1
+openai==0.27.7
+# Add any other dependencies here, for example, the library to interact with ChatGPT
+
