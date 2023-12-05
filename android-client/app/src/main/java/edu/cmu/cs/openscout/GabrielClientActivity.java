@@ -98,6 +98,8 @@ import edu.cmu.cs.gabriel.util.Screenshot;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
+import java.util.Date;
+
 public class GabrielClientActivity extends AppCompatActivity {
 
     private static final String LOG_TAG = "GabrielClientActivity";
@@ -107,9 +109,6 @@ public class GabrielClientActivity extends AppCompatActivity {
     private static int BITRATE = 1 * 1024 * 1024;
     private static final int MEDIA_TYPE_IMAGE = 1;
     private static final int MEDIA_TYPE_VIDEO = 2;
-
-//    private static final Pattern PATTERN =
-//            Pattern.compile("(?:\\n\\n\\n|Key idea in English)(.*?)}", Pattern.DOTALL);
 
     // major components for streaming sensor data and receiving information
     String serverIP = null;
@@ -142,17 +141,22 @@ public class GabrielClientActivity extends AppCompatActivity {
     // Global variable to store the latest frame.
     private volatile Boolean sendImageToServer = false;
 
-//    public static String extractText(String results) {
-//        // Create a matcher to find matches
-//        Matcher matcher = PATTERN.matcher(results);
-//
-//        // Extract and return the text
-//        if (matcher.find()) {
-//            return matcher.group(1).trim(); // Trim to remove leading/trailing whitespace
-//        } else {
-//            return "No match found";
-//        }
-//    }
+    private static String extractText(String results) {
+        if (results.equals("Setting the prompt success.")) {
+            return results;
+        }
+        Pattern PATTERN =
+                Pattern.compile("(?:\\n\\n\\n|Key idea in English:)(.*?)\\}", Pattern.DOTALL);
+        // Create a matcher to find matches
+        Matcher matcher = PATTERN.matcher(results);
+
+        // Extract and return the text
+        if (matcher.find()) {
+            return matcher.group(1).trim(); // Trim to remove leading/trailing whitespace
+        } else {
+            return "No match found";
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -213,6 +217,10 @@ public class GabrielClientActivity extends AppCompatActivity {
             screenshotButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    Date date = new Date();
+                    //This method returns the time in millis
+                    long timeMilli = date.getTime();
+                    Log.d("Hit Button at ", String.valueOf(timeMilli));
                     Bitmap b = Screenshot.takescreenshotOfRootView(preview);
 //                    storeScreenshot(b, getOutputMediaFile(MEDIA_TYPE_IMAGE).getPath());
 //                    screenshotButton.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
@@ -275,7 +283,7 @@ public class GabrielClientActivity extends AppCompatActivity {
 
 
         } else {
-            findViewById(R.id.imgRecord).setVisibility(View.GONE);
+//            findViewById(R.id.imgRecord).setVisibility(View.GONE);
             findViewById(R.id.imgScreenshot).setVisibility(View.GONE);
         }
 
@@ -313,6 +321,10 @@ public class GabrielClientActivity extends AppCompatActivity {
 
                 builder.setPositiveButton(R.string.train, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
+                        Date date = new Date();
+                        //This method returns the time in millis
+                        long timeMilli = date.getTime();
+                        Log.d("Hit Button at ", String.valueOf(timeMilli));
 
                         Const.IS_TRAINING = true;
                         final String[] text = {input.getText().toString()};
@@ -327,7 +339,7 @@ public class GabrielClientActivity extends AppCompatActivity {
                         openscoutcomm.sendSupplier(() -> {
 //                            String text = input.getText().toString();
                             if (text[0].isEmpty()) {
-                                text[0] = "I am in front of this sign, what should I do? Sign: ";
+                                text[0] = "Write one sentence in English about the key idea of below text : ";
                             }
                             ByteString textByteString = ByteString.copyFromUtf8(text[0]);
 
@@ -699,7 +711,14 @@ public class GabrielClientActivity extends AppCompatActivity {
                 ByteString dataString = result.getPayload();
                 String results = dataString.toStringUtf8();
                 results = results.replace("\\n", "\n");
-//                results = extractText(results);
+                results = extractText(results);
+                results = results.replaceAll("\"$", "");
+
+
+                Date date = new Date();
+                //This method returns the time in millis
+                long timeMilli = date.getTime();
+                Log.d("Received msg at ", String.valueOf(timeMilli));
 
                 Log.d(LOG_TAG, results);
 
@@ -707,8 +726,8 @@ public class GabrielClientActivity extends AppCompatActivity {
                 String prev = resultsView.getText().toString();
                 StringBuilder sb = new StringBuilder();
                 sb.append(results);
-                sb.append("\n");
-                sb.append(prev);
+                sb.append("\n\n");
+//                sb.append(prev);
                 detections++;
                 resultsView.setText(sb.toString());
             }

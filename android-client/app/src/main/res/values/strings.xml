@@ -26,7 +26,7 @@
     <string name="cancel">Cancel</string>
     <string name="train">Set</string>
     <string name="training_dialog_title">Prompt Input</string>
-    <string name="training_name_prompt">Enter Prompt (Default: "I am in front of this sign, what should I do? Sign: ")</string>
+    <string name="training_name_prompt">Enter Prompt (Default: "Tell me the key idea of these texts in English: ")</string>
     <string name="training_in_progress">Prompt Entered</string>
     <string name="training_canceled">Prompt Enter canceled.</string>
     <string name="training_succeeded">Prompt sent to server successfully.</string>
